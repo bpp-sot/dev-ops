@@ -1,0 +1,36 @@
+name: Tear down stack
+
+# Manual clean-up. Sandboxes expire on their own, but this lets learners
+# practise removing infrastructure the same way they created it.
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: Type DELETE to confirm removal of the stack
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  teardown:
+    if: inputs.confirm == 'DELETE'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      STACK_NAME: ${{ vars.STACK_NAME || 'campus-store' }}
+    steps:
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+
+      - name: Delete stack
+        run: |
+          aws cloudformation delete-stack --stack-name "$STACK_NAME"
+          aws cloudformation wait stack-delete-complete --stack-name "$STACK_NAME"
+          echo "### Stack \`$STACK_NAME\` deleted" >> "$GITHUB_STEP_SUMMARY"

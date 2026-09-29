@@ -1,0 +1,129 @@
+name: Deploy CloudFormation stack (reusable)
+
+# Credentials are never stored in the repository. The AWS_* secrets below come
+# from GitHub Actions secrets, which learners populate with the temporary
+# credentials issued for their Skillable sandbox (see scripts/configure-secrets.*).
+
+on:
+  workflow_call:
+    inputs:
+      stack-name:
+        description: CloudFormation stack name
+        type: string
+        required: true
+      aws-region:
+        description: AWS region of the sandbox
+        type: string
+        default: us-east-1
+      template-path:
+        description: Path to the CloudFormation template
+        type: string
+        default: infra/template.yaml
+      smoke-test-timeout-minutes:
+        description: How long to wait for the new version to answer on /health
+        type: number
+        default: 8
+    secrets:
+      AWS_ACCESS_KEY_ID:
+        required: false
+      AWS_SECRET_ACCESS_KEY:
+        required: false
+      AWS_SESSION_TOKEN:
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check AWS credentials are configured
+        id: creds
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: |
+          if [ -n "$AWS_ACCESS_KEY_ID" ] && [ -n "$AWS_SECRET_ACCESS_KEY" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::warning title=Deployment skipped::AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY secrets are not set."
+            {
+              echo "### Deployment skipped"
+              echo "No AWS credentials are configured for this repository."
+              echo "Add your sandbox credentials as repository secrets (see \`scripts/configure-secrets.sh\`) and re-run this workflow."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Configure AWS credentials
+        if: steps.creds.outputs.present == 'true'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ inputs.aws-region }}
+
+      - name: Confirm AWS identity
+        if: steps.creds.outputs.present == 'true'
+        run: aws sts get-caller-identity --query Arn --output text
+
+      - name: Deploy stack
+        if: steps.creds.outputs.present == 'true'
+        env:
+          REPO_URL: ${{ github.server_url }}/${{ github.repository }}.git
+          GIT_SHA: ${{ github.sha }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          aws cloudformation deploy \
+            --stack-name "${{ inputs.stack-name }}" \
+            --template-file "${{ inputs.template-path }}" \
+            --parameter-overrides \
+              GitRepoUrl="$REPO_URL" \
+              GitSha="$GIT_SHA" \
+              GitHubToken="$GH_TOKEN" \
+            --tags Project=campus-store ManagedBy=github-actions \
+            --no-fail-on-empty-changeset
+
+      - name: Read stack outputs
+        if: steps.creds.outputs.present == 'true'
+        id: outputs
+        run: |
+          get() { aws cloudformation describe-stacks --stack-name "${{ inputs.stack-name }}" \
+            --query "Stacks[0].Outputs[?OutputKey=='$1'].OutputValue" --output text; }
+          echo "url=$(get PublicUrl)" >> "$GITHUB_OUTPUT"
+          echo "instance=$(get InstanceId)" >> "$GITHUB_OUTPUT"
+
+      - name: Wait for the new version to go live
+        if: steps.creds.outputs.present == 'true'
+        env:
+          URL: ${{ steps.outputs.outputs.url }}
+          GIT_SHA: ${{ github.sha }}
+          TIMEOUT_MINUTES: ${{ inputs.smoke-test-timeout-minutes }}
+        run: |
+          deadline=$((SECONDS + TIMEOUT_MINUTES * 60))
+          until [ "$(curl -fsS --max-time 5 "$URL/health" 2>/dev/null | jq -r .version 2>/dev/null)" = "$GIT_SHA" ]; do
+            if [ $SECONDS -ge $deadline ]; then
+              echo "::error::$URL did not report version $GIT_SHA within $TIMEOUT_MINUTES minutes"
+              exit 1
+            fi
+            echo "Waiting for $URL to serve $GIT_SHA ..."
+            sleep 10
+          done
+          curl -fsS "$URL/api/products" | jq -e '.products | length > 0' > /dev/null
+          {
+            echo "### Deployed"
+            echo "- Store: $URL"
+            echo "- Commit: \`$GIT_SHA\`"
+            echo "- Stack: \`${{ inputs.stack-name }}\` (${{ inputs.aws-region }})"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Show instance boot log on failure
+        if: failure() && steps.creds.outputs.present == 'true' && steps.outputs.outputs.instance != ''
+        continue-on-error: true
+        run: |
+          aws ec2 get-console-output --instance-id "${{ steps.outputs.outputs.instance }}" --latest --output text | tail -n 60

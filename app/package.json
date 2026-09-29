@@ -1,0 +1,22 @@
+{
+  "name": "campus-store",
+  "version": "1.0.0",
+  "description": "BPP Campus Store - merchandise shop used as the sample application for the Level 6/7 DevOps CI/CD lab",
+  "private": true,
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "lint": "eslint .",
+    "test": "node --test",
+    "test:coverage": "node --test --experimental-test-coverage"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.11.0",
+    "globals": "^17.12.0"
+  }
+}

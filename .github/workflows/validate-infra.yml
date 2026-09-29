@@ -1,0 +1,29 @@
+name: Validate infrastructure (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      template-path:
+        description: Path to the CloudFormation template
+        type: string
+        default: infra/template.yaml
+
+permissions:
+  contents: read
+
+jobs:
+  cfn-lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install cfn-lint
+        run: pip install cfn-lint
+
+      - name: Lint CloudFormation template
+        run: cfn-lint ${{ inputs.template-path }}

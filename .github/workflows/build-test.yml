@@ -1,0 +1,55 @@
+name: Build and test (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      node-version:
+        description: Node.js version used to build and test
+        type: string
+        default: "20"
+      working-directory:
+        description: Directory containing the application's package.json
+        type: string
+        default: app
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: npm
+          cache-dependency-path: ${{ inputs.working-directory }}/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit and API tests
+        run: npm test
+
+      - name: Dependency audit
+        run: npm audit --audit-level=high
+
+      - name: Start the app and check it responds
+        run: |
+          PORT=3000 GIT_SHA=ci node src/server.js &
+          server_pid=$!
+          trap 'kill $server_pid' EXIT
+          for i in $(seq 1 15); do
+            curl -fsS http://127.0.0.1:3000/health && break
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:3000/api/products | grep -q hoodie

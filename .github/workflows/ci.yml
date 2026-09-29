@@ -1,0 +1,40 @@
+name: CI/CD
+
+# Entry point. Runs on every push to main and on every pull request.
+#   pull request  -> build, lint, test and validate the infrastructure
+#   push to main  -> the same checks, then deploy the CloudFormation stack
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build-test:
+    name: Build and test
+    uses: ./.github/workflows/build-test.yml
+    with:
+      node-version: "20"
+
+  validate-infra:
+    name: Validate infrastructure
+    uses: ./.github/workflows/validate-infra.yml
+
+  deploy:
+    name: Deploy to AWS sandbox
+    needs: [build-test, validate-infra]
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    uses: ./.github/workflows/deploy-stack.yml
+    with:
+      stack-name: ${{ vars.STACK_NAME || 'campus-store' }}
+      aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+    secrets: inherit
