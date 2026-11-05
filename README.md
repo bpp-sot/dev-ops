@@ -44,11 +44,19 @@ Work through these in order. [docs/LAB-GUIDE.md](docs/LAB-GUIDE.md) has the full
 - [ ] **6. Break it on purpose.** Make a test fail and see what the pipeline does. Then fix it.
 - [ ] **7. Clean up.** Use the **Tear down stack** workflow to remove what you built.
 
-**Stretch goals**
+## Choose your outcome
 
-- Require a manual approval before deployment (look up GitHub Environments).
-- Change the server size or add a tag in `infra/template.yaml`, and read the CloudFormation change in the deploy log.
-- Add a step to the pipeline that comments on the pull request when checks pass.
+| Outcome | What you do |
+|---|---|
+| **Baseline** | Deploy the store through the pipeline, using credentials stored as GitHub secrets |
+| **Intermediate** | Ship a small change through a branch, a pull request and the pipeline |
+| **Advanced** | Add a real feature (with tests), or improve the pipeline or infrastructure |
+
+Ideas for features, the evidence to collect, and the reflection questions are in [docs/CHALLENGE.md](docs/CHALLENGE.md).
+
+## AI is allowed, and encouraged
+
+Use GitHub Copilot or any AI assistant to explain the code, write a feature, or decode a failed pipeline log. The rules are simple: you must be able to explain what you submit, the pipeline decides whether it works, and you never paste credentials into an AI tool. This repo includes `.github/copilot-instructions.md` so Copilot understands the project.
 
 ## What is in this repository
 
@@ -63,6 +71,8 @@ Work through these in order. [docs/LAB-GUIDE.md](docs/LAB-GUIDE.md) has the full
 | `.github/workflows/teardown.yml` | A manual workflow that deletes what you deployed |
 | `scripts/configure-secrets.sh` / `.ps1` | Copies your sandbox credentials into GitHub secrets |
 | `docs/LAB-GUIDE.md` | Step-by-step instructions |
+| `docs/CHALLENGE.md` | Outcomes, feature ideas, evidence checklist and reflection questions |
+| `.github/copilot-instructions.md` | Gives GitHub Copilot the project's rules and layout |
 | `docs/sandbox-iam-policy.json` | The AWS permissions the pipeline needs |
 
 ## When does the pipeline deploy?

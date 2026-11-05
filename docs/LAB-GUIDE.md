@@ -29,6 +29,13 @@ export AWS_REGION=us-east-1         # or the region shown in your lab
 
 Sandbox credentials expire with the session. When you start a new session, run the script again.
 
+**Where do I get the keys?** Your lab instructions may list an access key ID and secret access key. If they only give you a console login (account number, username, password), sign in to the AWS console and either:
+
+- open CloudShell and run `aws configure export-credentials --format env`, or
+- go to IAM > Users > your user > Security credentials > **Create access key** (choose *Third-party service*).
+
+You can also add the secrets on the GitHub website: your repo > **Settings > Secrets and variables > Actions**. Add `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` (and `AWS_SESSION_TOKEN` if you have one). Add a variable called `AWS_REGION` if your sandbox is not in `us-east-1`. Never paste keys into a file, a chat or an AI tool.
+
 ## 3. Deploy
 
 1. Actions > **CI/CD** > **Run workflow** (or push any commit to `main`).
@@ -64,8 +71,6 @@ git switch -c feature/new-product
 | Stack is in `ROLLBACK_COMPLETE` | Run **Tear down stack**, then deploy again. |
 | Deploy waits for `/health` and times out | Check the "instance boot log" step at the end of the failed run. |
 
-## For instructors
+## Next
 
-- `docs/sandbox-iam-policy.json` is the full set of AWS permissions the pipeline needs. Nothing creates IAM roles or pipeline services.
-- The instance pulls code from GitHub over HTTPS. The pipeline passes its own short-lived `GITHUB_TOKEN` so private learner repositories work.
-- Skillable can inject the credentials into the lab instructions as environment variables or lab-instruction tokens.
+Ready for more? Pick your outcome in [CHALLENGE.md](CHALLENGE.md).
