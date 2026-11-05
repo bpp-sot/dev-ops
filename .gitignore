@@ -8,3 +8,5 @@ coverage/
 Thumbs.db
 .vscode/
 .idea/
+skills-lock.json
+.devin/
