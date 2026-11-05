@@ -12,7 +12,7 @@ By the end you will have:
 - a live store at a public URL, updated by a `git push`
 - a code change you shipped through a pull request
 
-You'll need a GitHub account, Git, and a code editor such as VS Code. Node.js 20 or later is only needed if you want to run the store on your own machine.
+You'll need a GitHub account, Git, and a code editor such as VS Code. Node.js 24 or later is only needed if you want to run the store on your own machine.
 
 ## How it works
 
