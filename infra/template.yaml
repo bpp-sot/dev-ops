@@ -124,8 +124,8 @@ Resources:
           # STORE_GIT_TOKEN=${GitHubToken}
           set -euxo pipefail
 
-          dnf install -y nodejs20 git
-          ln -sf /usr/bin/node-20 /usr/local/bin/node
+          dnf install -y nodejs24 git
+          ln -sf /usr/bin/node-24 /usr/local/bin/node
 
           cat > /usr/local/bin/campus-store-sync <<'SYNC'
           #!/bin/bash

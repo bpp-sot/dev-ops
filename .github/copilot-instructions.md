@@ -3,7 +3,7 @@
 This is the BPP Campus Store, a sample app for a DevOps CI/CD lab. Learners deploy it with GitHub Actions and AWS CloudFormation. Explain your suggestions simply, because many users are new to coding.
 
 ## Project layout
-- `app/`: Node.js (20+) API and storefront. **No runtime dependencies.** Use only built-in Node modules in `app/src`. Dev tools (ESLint) are allowed as dev dependencies.
+- `app/`: Node.js (24+) API and storefront. **No runtime dependencies.** Use only built-in Node modules in `app/src`. Dev tools (ESLint) are allowed as dev dependencies.
 - `app/test/`: tests using the built-in `node:test` runner. Run `npm test` and `npm run lint` from `app/`.
 - `infra/template.yaml`: CloudFormation. **Do not add `AWS::IAM::*` resources**; the sandbox cannot create IAM roles.
 - `.github/workflows/`: `ci.yml` is the entry point; the other files are reusable workflows (`workflow_call`).
